@@ -9,12 +9,9 @@ import (
 
 
 func (app *application) showMovieHandler(res http.ResponseWriter, req *http.Request) {
-  params := httprouter.ParamsFromContext(req.Context())
-
-  id, err := strconv.ParseInt(params.ByName("id"), 10, 64)
-  if err != nil || id < 1 {
+  id, err := app.readIDParam(req)
+  if err != nil {
     http.NotFound(res, req)
-    return
   }
 
   fmt.Fprintf(res, "show the details of movie %d\n", id)
