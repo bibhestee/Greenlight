@@ -3,6 +3,8 @@ package main
 import (
   "fmt"
   "net/http"
+  "time"
+  "github.com/bibhestee/Greenlight/internal/data"
 )
 
 
@@ -12,7 +14,20 @@ func (app *application) showMovieHandler(res http.ResponseWriter, req *http.Requ
     http.NotFound(res, req)
   }
 
-  fmt.Fprintf(res, "show the details of movie %d\n", id)
+  movie := data.Movie{
+    ID: id,
+    CreatedAt: time.Now(),
+    Title: "Casablanca",
+    Runtime: 102,
+    Genres: []string{"drama", "romance", "war"},
+    Version: 1,
+  }
+
+  err = app.writeJSON(res, http.StatusOK, envelope{"movie": movie}, nil)
+  if err != nil {
+    app.logger.Println(err)
+    http.Error(res, "The server encountered a problem and could not process your request", http.StatusInternalServerError)
+  }
 }
 
 
