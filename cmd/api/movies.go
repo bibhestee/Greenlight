@@ -1,6 +1,7 @@
 package main
 
 import (
+  "encoding/json"
   "fmt"
   "net/http"
   "time"
@@ -11,7 +12,8 @@ import (
 func (app *application) showMovieHandler(res http.ResponseWriter, req *http.Request) {
   id, err := app.readIDParam(req)
   if err != nil {
-    http.NotFound(res, req)
+    app.notFoundResponse(res, req)
+    return
   }
 
   movie := data.Movie{
@@ -25,12 +27,25 @@ func (app *application) showMovieHandler(res http.ResponseWriter, req *http.Requ
 
   err = app.writeJSON(res, http.StatusOK, envelope{"movie": movie}, nil)
   if err != nil {
-    app.logger.Println(err)
-    http.Error(res, "The server encountered a problem and could not process your request", http.StatusInternalServerError)
-  }
+    app.serverErrorResponse(res, req, err)
+    }
 }
 
 
 func (app *application) createMovieHandler(res http.ResponseWriter, req *http.Request) {
-  fmt.Fprintln(res, "create a new movie")
+  var input struct {
+    Title   string    `json="title"`
+    Year    int32     `json="year"`
+    Runtime int32     `json="runtime"`
+    Genres  []string  `json="genres"`
+  }
+
+  err := json.NewDecoder(req.Body).Decode(&input)
+  if err != nil {
+    app.errorResponse(res, req, http.StatusBadRequest, err.Error())
+    return
+  }
+
+  fmt.Fprintf(res, "%+v\n", input)
 }
+
