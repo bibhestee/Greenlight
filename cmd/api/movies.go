@@ -5,6 +5,7 @@ import (
   "net/http"
   "time"
   "github.com/bibhestee/Greenlight/internal/data"
+  "github.com/bibhestee/Greenlight/internal/validator"
 )
 
 
@@ -42,6 +43,20 @@ func (app *application) createMovieHandler(res http.ResponseWriter, req *http.Re
   err := app.readJSON(res, req, &input)
   if err != nil {
     app.badRequestResponse(res, req, err)
+    return
+  }
+
+  movie := &data.Movie{
+    Title: input.Title,
+    Year: input.Year,
+    Runtime: input.Runtime,
+    Genres: input.Genres,
+  }
+
+  v := validator.New()
+
+  if data.ValidateMovie(v, movie); !v.Valid() {
+    app.failedValidationResponse(res, req, v.Errors)
     return
   }
 
