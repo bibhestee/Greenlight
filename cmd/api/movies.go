@@ -2,6 +2,7 @@ package main
 
 import (
   "fmt"
+  "errors"
   "net/http"
   "time"
   "github.com/bibhestee/Greenlight/internal/data"
@@ -16,13 +17,15 @@ func (app *application) showMovieHandler(res http.ResponseWriter, req *http.Requ
     return
   }
 
-  movie := data.Movie{
-    ID: id,
-    CreatedAt: time.Now(),
-    Title: "Casablanca",
-    Runtime: 102,
-    Genres: []string{"drama", "romance", "war"},
-    Version: 1,
+  movie, err := app.models.Movie.Get(id)
+  if err != nil {
+    switch {
+    case errors.Is(err, data.ErrNoRecordFound):
+      app.notFoundResponse(res, req)
+   default:
+      app.serverErrorResponse(res, req, err)
+    }
+    return
   }
 
   err = app.writeJSON(res, http.StatusOK, envelope{"movie": movie}, nil)
