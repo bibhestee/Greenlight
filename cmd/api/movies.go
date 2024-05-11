@@ -4,7 +4,6 @@ import (
   "fmt"
   "errors"
   "net/http"
-  "time"
   "github.com/bibhestee/Greenlight/internal/data"
   "github.com/bibhestee/Greenlight/internal/validator"
 )
@@ -17,10 +16,10 @@ func (app *application) showMovieHandler(res http.ResponseWriter, req *http.Requ
     return
   }
 
-  movie, err := app.models.Movie.Get(id)
+  movie, err := app.models.Movies.Get(id)
   if err != nil {
     switch {
-    case errors.Is(err, data.ErrNoRecordFound):
+    case errors.Is(err, data.ErrRecordNotFound):
       app.notFoundResponse(res, req)
    default:
       app.serverErrorResponse(res, req, err)
@@ -78,3 +77,56 @@ func (app *application) createMovieHandler(res http.ResponseWriter, req *http.Re
   }
 }
 
+func (app *application) updateMovieHandler(res http.ResponseWriter, req *http.Request) {
+  id, err := app.readIDParam(req)
+  if err != nil {
+    app.notFoundResponse(res, req)
+  }
+
+  movie, err := app.models.Movies.Get(id)
+  if err != nil {
+    switch {
+    case errors.Is(err, data.ErrRecordNotFound):
+      app.notFoundResponse(res, req)
+   default:
+      app.serverErrorResponse(res, req, err)
+    }
+    return
+  }
+
+  var input struct {
+    Title   string    `json:"title"`
+    Year    int32     `json:"year"`
+    Runtime data.Runtime     `json:"runtime"`
+    Genres  []string  `json:"genres"`
+  }
+
+  err = app.readJSON(res, req, &input)
+  if err != nil {
+    app.badRequestResponse(res, req, err)
+    return
+  }
+
+  movie.Title = input.Title
+  movie.Year = input.Year
+  movie.Runtime = input.Runtime
+  movie.Genres = input.Genres
+  // Validate the updated movie record, sending the client a 422 Unprocessable Entity
+  // response if any checks fail.
+  v := validator.New()
+  if data.ValidateMovie(v, movie); !v.Valid() {
+    app.failedValidationResponse(res, req, v.Errors)
+    return
+  }
+  // Pass the updated movie record to our new Update() method.
+  err = app.models.Movies.Update(movie)
+  if err != nil {
+    app.serverErrorResponse(res, req, err)
+    return
+  }
+   // Write the updated movie record in a JSON response.
+  err = app.writeJSON(res, http.StatusOK, envelope{"movie": movie}, nil)
+  if err != nil {
+    app.serverErrorResponse(res, req, err)
+  }
+}
