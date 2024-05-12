@@ -95,9 +95,9 @@ func (app *application) updateMovieHandler(res http.ResponseWriter, req *http.Re
   }
 
   var input struct {
-    Title   string    `json:"title"`
-    Year    int32     `json:"year"`
-    Runtime data.Runtime     `json:"runtime"`
+    Title   *string    `json:"title"`
+    Year    *int32     `json:"year"`
+    Runtime *data.Runtime     `json:"runtime"`
     Genres  []string  `json:"genres"`
   }
 
@@ -107,10 +107,22 @@ func (app *application) updateMovieHandler(res http.ResponseWriter, req *http.Re
     return
   }
 
-  movie.Title = input.Title
-  movie.Year = input.Year
-  movie.Runtime = input.Runtime
-  movie.Genres = input.Genres
+  if input.Title != nil {
+    movie.Title = *input.Title
+  }
+
+  if input.Year != nil {
+    movie.Year = *input.Year
+  }
+
+  if input.Runtime != nil {
+    movie.Runtime = *input.Runtime
+  }
+
+  if input.Genres != nil {
+    movie.Genres = input.Genres
+  }
+
   // Validate the updated movie record, sending the client a 422 Unprocessable Entity
   // response if any checks fail.
   v := validator.New()
@@ -126,6 +138,31 @@ func (app *application) updateMovieHandler(res http.ResponseWriter, req *http.Re
   }
    // Write the updated movie record in a JSON response.
   err = app.writeJSON(res, http.StatusOK, envelope{"movie": movie}, nil)
+  if err != nil {
+    app.serverErrorResponse(res, req, err)
+  }
+}
+
+
+func (app *application) deleteMovieHandler(res http.ResponseWriter, req *http.Request) {
+  id, err := app.readIDParam(req)
+  if err != nil {
+    app.notFoundResponse(res, req)
+    return
+  }
+
+  err = app.models.Movies.Delete(id)
+  if err != nil {
+    switch {
+    case errors.Is(err, data.ErrRecordNotFound):
+      app.notFoundResponse(res, req)
+    default:
+      app.serverErrorResponse(res, req, err)
+    }
+    return
+  }
+
+  err = app.writeJSON(res, http.StatusOK, envelope{"message": "movie successfully deleted"}, nil)
   if err != nil {
     app.serverErrorResponse(res, req, err)
   }
