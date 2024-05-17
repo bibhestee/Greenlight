@@ -6,8 +6,10 @@ import (
   "fmt"
   "io"
   "net/http"
+  "net/url"
   "strconv"
   "strings"
+  "github.com/bibhestee/Greenlight/internal/validator"
   "github.com/julienschmidt/httprouter"
 )
 
@@ -24,6 +26,40 @@ func (app *application) readIDParam(req *http.Request) (int64, error) {
   return id, nil
 }
 
+func (app *application) readString(qr url.Values, key string, defaultValue string) string {
+  s := qr.Get(key)
+
+  if s == "" {
+    return defaultValue
+  }
+  return s
+}
+
+func (app *application) readInt(qr url.Values, key string, defaultValue int, v *validator.Validator) int {
+  s := qr.Get(key)
+
+  if s == "" {
+    return defaultValue
+  }
+
+  i, err := strconv.Atoi(s)
+  if err != nil {
+    v.AddError(key, "must be an integer value")
+    return defaultValue
+  }
+
+  return i
+}
+
+func (app *application) readCSV(qr url.Values, key string, defaultValue []string) []string {
+  csv := qr.Get(key)
+
+  if csv == "" {
+    return defaultValue
+  }
+
+  return strings.Split(csv, ",")
+}
 
 func (app *application) writeJSON(res http.ResponseWriter, status int, data envelope, headers http.Header) error {
   js, err := json.MarshalIndent(data, "", "\t")

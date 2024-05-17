@@ -33,6 +33,30 @@ func (app *application) showMovieHandler(res http.ResponseWriter, req *http.Requ
     }
 }
 
+func (app *application) listMoviesHandler(res http.ResponseWriter, req *http.Request) {
+  var input struct {
+    Title string
+    Genres []string
+    data.Filters
+  }
+
+  v := validator.New()
+
+  queryString := req.URL.Query()
+
+  input.Title = app.readString(queryString, "title", "")
+  input.Genres = app.readCSV(queryString, "genres", []string{})
+  input.Filters.Page = app.readInt(queryString, "page", 1, v)
+  input.Filters.PageSize = app.readInt(queryString, "page_size", 20, v)
+  input.Filters.Sort = app.readString(queryString, "sort", "id")
+
+  if !v.Valid() {
+    app.failedValidationResponse(res, req, v.Errors)
+    return
+  }
+
+  fmt.Fprintf(res, "%+v\n", input)
+}
 
 func (app *application) createMovieHandler(res http.ResponseWriter, req *http.Request) {
   var input struct {
