@@ -56,7 +56,15 @@ func (app *application) listMoviesHandler(res http.ResponseWriter, req *http.Req
     return
   }
 
-  fmt.Fprintf(res, "%+v\n", input)
+  movies, err := app.models.Movies.GetAll(input.Title, input.Genres, input.Filters)
+  if err != nil {
+    app.badRequestResponse(res, req, err)
+  }
+
+  err = app.writeJSON(res, http.StatusOK, envelope{"movies": movies}, nil)
+  if err != nil {
+    app.serverErrorResponse(res, req, err)
+  }
 }
 
 func (app *application) createMovieHandler(res http.ResponseWriter, req *http.Request) {
