@@ -97,7 +97,7 @@ func (m UserModel) Insert(user *User) error {
 
 	if err != nil {
 		switch {
-		case err.Error() == `pq: duplicate key value violates unique constraint "user_email_key"`:
+		case err.Error() == `pq: duplicate key value violates unique constraint "users_email_key"`:
 			return ErrDuplicateEmail
 		default:
 			return err
